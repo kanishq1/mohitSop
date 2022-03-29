@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Document</title>
+        <link rel="stylesheet" href="./styles.css" />
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body>
+        <div class="flex">
+            <div class="m-8 w-1/2 flex flex-col justify-center items-center">
+                <p id="start-camera">Camera will start here</p>
+                <video id="video" width="320" height="240" autoplay></video>
+                <button id="start-record">Start Recording</button>
+                <p class="mt-5" id="stop-record">Recording Video</p>
+                <a class="text-[#0000FF] underline" id="download-video" download="video.webm">Download Video</a>
+            </div>
+            <div class="m-8 w-1/2">
+                <div class="container">
+                    <h1 class="text-xl font-bold">Flip the coin :O</h1>
+                    <div id="coin" class="">
+                        <div id="heads" class="heads"></div>
+                        <div id="tails" class="tails"></div>
+                    </div>
+                    <button id="flip">Flip the coin!</button>
+                    <!-- <p>Heads: <span id="headsCount">0</span> Tails: <span id="tailsCount">0</span></p> -->
+                    <p><span id="status"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let camera_button = document.querySelector("#start-camera");
+            let video = document.querySelector("#video");
+            let start_button = document.querySelector("#start-record");
+            let stop_button = document.querySelector("#stop-record");
+            let download_link = document.querySelector("#download-video");
+
+            let camera_stream = null;
+            let media_recorder = null;
+            const coin = document.querySelector("#coin");
+            const button = document.querySelector("#flip");
+            const status = document.querySelector("#status");
+            const heads = document.querySelector("#headsCount");
+            const tails = document.querySelector("#tailsCount");
+
+            let headsCount = 0;
+            let tailsCount = 0;
+
+            function deferFn(callback, ms) {
+                setTimeout(callback, ms);
+            }
+
+            function processResult(result) {
+                if (result === "heads") {
+                    headsCount++;
+                    heads.innerText = headsCount;
+                } else {
+                    tailsCount++;
+                    tails.innerText = tailsCount;
+                }
+                status.innerText = result.toUpperCase();
+            }
+
+            function flipCoin() {
+                coin.setAttribute("class", "");
+                const random = Math.random();
+                const result = random < 0.5 ? "heads" : "tails";
+                deferFn(function () {
+                    coin.setAttribute("class", "animate-" + result);
+                    deferFn(processResult.bind(null, result), 2900);
+                }, 100);
+            }
+
+            function stopRecord() {
+                media_recorder.stop();
+            }
+
+            button.addEventListener("click", start);
+            async function start() {
+                let blobs_recorded = [];
+
+                download_link.style.display = "none";
+
+                setTimeout(flipCoin, 2000);
+                setTimeout(stopRecord, 8000);
+
+                try {
+                    camera_stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                } catch (error) {
+                    alert(error.message);
+                    return;
+                }
+
+                video.srcObject = camera_stream;
+                camera_button.style.display = "none";
+                video.style.display = "block";
+
+                media_recorder = new MediaRecorder(camera_stream, { mimeType: "video/webm" });
+
+                media_recorder.addEventListener("dataavailable", function (e) {
+                    blobs_recorded.push(e.data);
+                });
+
+                media_recorder.addEventListener("stop", function () {
+                    let video_local = URL.createObjectURL(new Blob(blobs_recorded, { type: "video/webm" }));
+                    download_link.href = video_local;
+
+                    stop_button.style.display = "none";
+                    download_link.style.display = "block";
+                });
+
+                media_recorder.start(1000);
+
+                stop_button.style.display = "block";
+            }
+        </script>
+    </body>
+</html>
