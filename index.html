@@ -25,6 +25,7 @@
                         <div id="tails" class="tails"></div>
                     </div>
                     <button id="flip">Flip the coin!</button>
+                    <button id="reveal" style="margin-top: 20px;">Reveal Choice</button>
                     <!-- <p>Heads: <span id="headsCount">0</span> Tails: <span id="tailsCount">0</span></p> -->
                     <p><span id="status"></span></p>
                 </div>
@@ -39,12 +40,12 @@
             let download_link = document.querySelector("#download-video");
 
             let camera_stream = null;
-            let media_recorder = null;
             const coin = document.querySelector("#coin");
             const button = document.querySelector("#flip");
             const status = document.querySelector("#status");
             const heads = document.querySelector("#headsCount");
             const tails = document.querySelector("#tailsCount");
+            const revealBtn = document.querySelector('#reveal');
 
             let headsCount = 0;
             let tailsCount = 0;
@@ -74,18 +75,22 @@
                 }, 100);
             }
 
-            function stopRecord() {
-                media_recorder.stop();
-            }
+            
 
             button.addEventListener("click", start);
             async function start() {
+                let media_recorder = null;
+                
+                function stopRecord() {
+                    media_recorder.stop();
+                }
+
                 let blobs_recorded = [];
 
                 download_link.style.display = "none";
 
                 setTimeout(flipCoin, 200);
-                setTimeout(stopRecord, 4000);
+                setTimeout(stopRecord, 5000);
 
                 fetch("http://localhost:8080/api/deleteTexts", {
                     method: 'DELETE',
@@ -97,6 +102,7 @@
 
                 try {
                     camera_stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    console.log(camera_stream);
                 } catch (error) {
                     alert(error.message);
                     return;
@@ -107,6 +113,7 @@
                 video.style.display = "block";
 
                 media_recorder = new MediaRecorder(camera_stream, { mimeType: "video/webm" });
+                console.log(media_recorder);
 
                 media_recorder.addEventListener("dataavailable", function (e) {
                     blobs_recorded.push(e.data);
@@ -121,7 +128,6 @@
                     const tempInterval = setInterval(() => {
                         fetch("http://localhost:8080/api/fetchTexts")
                             .then(response => {
-                                console.log(response);
                                 if (response.status == 500) {
                                     return {text: "Getting response..."};
                                 }
@@ -129,14 +135,7 @@
                                 return response.json();
                             })
                             .then(data => {
-                                console.log(data);
-                                if (data.text.toUpperCase() == 'YES') {
-                                    status.innerText = "Player wants to take the coin";
-                                } else if (data.text.toUpperCase() == 'NO'){
-                                    status.innerText = "Player does not want to take the coin";
-                                } else {
-                                    status.innerText = data.text;
-                                }
+                                secondPart(data);
                             }).catch(err => {
                             });
                     }, 1000);
@@ -148,6 +147,63 @@
                 media_recorder.start(1000);
 
                 stop_button.style.display = "block";
+            }
+            revealBtn.addEventListener('click',async ()=>{
+                let media_recorder = null;
+
+                function stopRecord() {
+                    media_recorder.stop();
+                }
+
+                revealBtn.style.display = "none";
+                status.style.display = "block";
+                let blobs_recorded = [];
+
+                download_link.style.display = "none";
+                setTimeout(stopRecord, 3000);
+
+                try {
+                    camera_stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    console.log(camera_stream);
+                } catch (error) {
+                    alert(error.message);
+                    console.log(error.message);
+                    return;
+                }
+
+                video.srcObject = camera_stream;
+                camera_button.style.display = "none";
+                video.style.display = "block";
+
+                media_recorder = new MediaRecorder(camera_stream, { mimeType: "video/webm" });
+                console.log(media_recorder);
+
+                media_recorder.addEventListener("dataavailable", function (e) {
+                    blobs_recorded.push(e.data);
+                });
+
+                media_recorder.addEventListener("stop", function () {
+                    let video_local = URL.createObjectURL(new Blob(blobs_recorded, { type: "video/webm" }));
+                    download_link.href = video_local;
+
+                    download_link.click();
+
+                    stop_button.style.display = "none";
+                    download_link.style.display = "block";
+                });
+                media_recorder.start(200);
+                stop_button.style.display = "block";
+            })
+            function secondPart(choice){
+                if (choice.text.toUpperCase() == 'YES') {
+                    status.innerText = "Player wants to take the coin";
+                    revealBtn.style.display = "block";
+                } else if (choice.text.toUpperCase() == 'NO'){
+                    revealBtn.style.display = "block";
+                    status.innerText = "Player does not want to take the coin";
+                } else {
+                    status.innerText = choice.text;
+                }
             }
         </script>
     </body>
