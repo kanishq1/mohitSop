@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <style>
+            body {
+              font-size: 50px;
+            }
+        </style>
+        <meta charset="UTF-8" />
+        <title>Response</title>
+    </head>
+    <body>
+        <center>
+        <form>
+            <label for="fname">Do you want to take the coin or not? Enter you response(Either YES/NO)</label><br><br>
+            <input type="text" id="fname" name="fname">
+            <button id="submit" type="button">Submit</button>
+        </form>
+        </center>
+        <script>
+            const submitBtn = document.querySelector("#submit");
+            const txtInput = document.querySelector("#fname");
+
+            submitBtn.addEventListener("click", () => {
+                console.log("Hehe")
+                fetch("http://localhost:8080/api/addText", {
+                    method: 'POST',
+                headers: {
+                    'Accept': 'application/json, text/plain, */*',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({text: txtInput.value})
+                }).then(response => {
+                    txtInput.value = "";
+                    return response.json();
+                }).catch(err => {
+                });
+            });
+        </script>
+    </body>
+</html>

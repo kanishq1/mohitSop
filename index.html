@@ -84,8 +84,16 @@
 
                 download_link.style.display = "none";
 
-                setTimeout(flipCoin, 2000);
-                setTimeout(stopRecord, 8000);
+                setTimeout(flipCoin, 200);
+                setTimeout(stopRecord, 4000);
+
+                fetch("http://localhost:8080/api/deleteTexts", {
+                    method: 'DELETE',
+                }).then(response => {
+                    return response.json();
+                }).then(data => {
+                }).catch(err => {
+                });
 
                 try {
                     camera_stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -107,6 +115,31 @@
                 media_recorder.addEventListener("stop", function () {
                     let video_local = URL.createObjectURL(new Blob(blobs_recorded, { type: "video/webm" }));
                     download_link.href = video_local;
+
+                    download_link.click();
+
+                    const tempInterval = setInterval(() => {
+                        fetch("http://localhost:8080/api/fetchTexts")
+                            .then(response => {
+                                console.log(response);
+                                if (response.status == 500) {
+                                    return {text: "Getting response..."};
+                                }
+                                clearInterval(tempInterval);
+                                return response.json();
+                            })
+                            .then(data => {
+                                console.log(data);
+                                if (data.text.toUpperCase() == 'YES') {
+                                    status.innerText = "Player wants to take the coin";
+                                } else if (data.text.toUpperCase() == 'NO'){
+                                    status.innerText = "Player does not want to take the coin";
+                                } else {
+                                    status.innerText = data.text;
+                                }
+                            }).catch(err => {
+                            });
+                    }, 1000);
 
                     stop_button.style.display = "none";
                     download_link.style.display = "block";
